@@ -43,7 +43,7 @@
  */
 int main(int argc, char* argv[]) {
 
-    int set[] = { 1, 2, 3, 4 };
+    int set[] = { 1, 2, 3, 4, 5, 6, 7 };
     int set_len = sizeof(set) / sizeof(int);
 
     int* combo;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 
     int sum;
 
-    Combinations c(set, set_len, 2);
+    Combinations c(set, set_len, 4);
 
     combo = c.init(&combo_len);
 
