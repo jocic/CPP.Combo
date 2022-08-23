@@ -1,3 +1,32 @@
+/*******************************************************************\
+|* Author: Djordje Jocic                                           *|
+|* Year: 2022                                                      *|
+|* License: MIT License (MIT)                                      *|
+|* =============================================================== *|
+|* Personal Website: http://www.djordjejocic.com/                  *|
+|* =============================================================== *|
+|* Permission is hereby granted, free of charge, to any person     *|
+|* obtaining a copy of this software and associated documentation  *|
+|* files (the "Software"), to deal in the Software without         *|
+|* restriction, including without limitation the rights to use,    *|
+|* copy, modify, merge, publish, distribute, sublicense, and/or    *|
+|* sell copies of the Software, and to permit persons to whom the  *|
+|* Software is furnished to do so, subject to the following        *|
+|* conditions.                                                     *|
+|* --------------------------------------------------------------- *|
+|* The above copyright notice and this permission notice shall be  *|
+|* included in all copies or substantial portions of the Software. *|
+|* --------------------------------------------------------------- *|
+|* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, *|
+|* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES *|
+|* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND        *|
+|* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT     *|
+|* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,    *|
+|* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, RISING     *|
+|* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR   *|
+|* OTHER DEALINGS IN THE SOFTWARE.                                 *|
+\*******************************************************************/
+
 #include "combo.h"
 
 /**
@@ -13,47 +42,40 @@ int Combinations::BY_MAP;
 /**
  *
  */
-Combinations::Combinations(int *set, int n, char *k) {
-
-    int k_min, k_max;
-
-    __parse_subset_range(k, &k_min, &k_max);
-
-    Combinations(set, n, k_min, k_max);
-}
-
-/**
- *
- */
 Combinations::Combinations(int *set, int n, int k) {
-
-    Combinations(set, n, k, k);
-}
-
-/**
- *
- */
-Combinations::Combinations(int *set, int n, int k_min, int k_max) {
 
     if (set == NULL) {
         throw std::invalid_argument("[x] Provided set can't be NULL...");
     } else if (n <= 0) {
         throw std::invalid_argument("[x] Invalid length provided...");
-    } else if (k_min < 0 || k_min > k_max) {
+    } else if (k < 1 || k > n) {
         throw std::invalid_argument("[x] Invalid subset range provided...");
     }
 
     this->set     = set;
     this->set_len = n;
 
-    this->map     = (int*)calloc(n, sizeof(int));
-    this->map_len = n;
+    this->k = k;
 
-    this->k = k_min;
+    this->i = 0;
+    this->j = 1;
+    this->z = n;
 
-    this->i == 0;
-    this->j == 1;
-    this->z == n;
+    this->__init_map();
+}
+
+/**
+ *
+ */
+int* Combinations::init(int *len) {
+
+    this->combo = (int*)calloc(this->set_len, sizeof(int));
+
+    *len = this->k;
+
+    this->init_ran = true;
+
+    return this->combo;
 }
 
 /**
@@ -61,13 +83,27 @@ Combinations::Combinations(int *set, int n, int k_min, int k_max) {
  */
 bool Combinations::has_next() {
 
-    return true;
+    if (!this->init_ran) {
+        throw std::invalid_argument("[x] Not initialized...");
+    }
+
+    if (this->k == 1) {
+        return this->map[0] != this->set_len - 1;
+    }
+
+    return !(this->map[0] == this->set_len - 1 && this->map[this->k - 1] == this->set_len - 2);
 }
 
 /**
  *
  */
-void Combinations::next(int *arr, int len, int type) {
+void Combinations::next(int type) {
+
+    if (!this->init_ran) {
+        throw std::invalid_argument("[x] Not initialized...");
+    }
+
+    test:
 
     this->map[this->i]++;
 
@@ -81,54 +117,49 @@ void Combinations::next(int *arr, int len, int type) {
             this->j = this->i + 1;
 
             this->z--;
+            goto test;
         }
 
-        this->__normalize_map(j);
+        this->__normalize_map(this->j);
+    }
 
-        for (int i = 0, j = 0; i < len && i < this->set_len; j = this->map[i], i++) {
-            arr[i] = this->set[j];
-        }
+    for (int i = 0, j; i < this->k && i < this->set_len; i++) {
+
+        j = this->map[i];
+
+        this->combo[i] = type == Combinations::BY_VALUE ? this->set[j] : j;
     }
 }
 
 /**
  *
  */
-void Combinations::print(int *arr, int len) {
+void Combinations::print() {
 
-    cout << "[*] C= ";
-
-    while (len-- > 0) {
-        cout << *arr++;
+    if (!this->init_ran) {
+        throw std::invalid_argument("[x] Not initialized...");
     }
 
-    cout << endl;
+    int len = this->k;
+    int *arr_cb = this->combo;
+
+    cout << "[*] C = { ";
+
+    while (len-- > 1) {
+        cout << *arr_cb++ << ", ";
+    }
+
+    cout << *arr_cb << " }" << endl;
 }
 
 /**
  *
  */
 void Combinations::reset(){
-}
-/**
- *
- */
-void Combinations::__parse_subset_range(char *k, int *min, int *max) {
 
-    char *min_pt, *max_pt;
-
-    min_pt = k;
-
-    if ((max_pt = strchr(k, '-')) == NULL) {
-        throw std::invalid_argument("[*] Invalid subset format provided...");
+    if (!this->init_ran) {
+        throw std::invalid_argument("[x] Not initialized...");
     }
-
-    *max_pt = '\0';
-
-    max_pt++;
-
-    *min = atoi(min_pt);
-    *max = atoi(max_pt);
 }
 
 /**
@@ -136,9 +167,14 @@ void Combinations::__parse_subset_range(char *k, int *min, int *max) {
  */
 void Combinations::__init_map() {
 
-    for (int i = 0; i < this->map_len; i++) {
-        this->map[i] = i < k ? i : 0;
+    this->map     = (int*)calloc(this->set_len, sizeof(int));
+    this->map_len = this->set_len;
+
+    for (int i = 0, j = this->k - 1; i < k; i++, j--) {
+        this->map[i] = j;
     }
+
+    this->map[0]--;
 }
 
 /**
